@@ -1,0 +1,169 @@
+-- Module 4: Scalar Functions
+
+-- which year each product was introduced for sale?
+-- there is function YEAR
+select Name, year(SellStartDate) as SellStartYear
+from SalesLT.Product
+
+-- add how many years this product is/was selling 
+select Name,
+       year(SellStartDate) as SellStartYear,
+	   datediff(year, SellStartDate, 
+	        isnull(SellEndDate, getdate())) as YearsSelling
+from SalesLT.Product
+
+-- what month was each product introduced
+-- functions MONTH, DATEPART, and DATENAME
+
+select Name, convert(date, SellStartDate) as SellStartDate,
+       month(SellStartDate) as MonthStarted,
+	   datepart(month, SellStartDate) as MonthStarted2,
+	   datename(month, SellStartDate) as MonthStarted3
+from SalesLT.Product
+
+-- what day of week did each product start selling?
+select Name, 
+       datepart(weekday, SellStartDate) as WeekDayStarted,
+	   datename(weekday, SellStartDate) as WeekDayStarted2
+from SalesLT.Product
+
+-- which products started selling on a Friday
+select Name
+from SalesLT.Product
+where datepart(weekday, SellStartDate) = 6
+--or
+select Name
+from SalesLT.Product
+where datename(weekday, SellStartDate) = 'Friday'
+
+-- CONCAT function
+-- get fullname of each customer
+select CustomerID, FirstName + ' ' + LastName as FullName
+from SalesLT.Customer 
+-- or
+select CustomerID, concat(FirstName, ' ', LastName) as FullName
+from SalesLT.Customer 
+-- or
+select CustomerID, concat_ws(' ', FirstName, LastName) as FullName
+from SalesLT.Customer 
+
+-- get full addesses from Address table
+select AddressID, 
+       concat_ws(', ', AddressLine1, City, StateProvince,
+	                   CountryRegion, PostalCode) as FullAddress
+from SalesLT.Address
+
+-------------------------
+-- Module 4 Logical Functions
+
+-- display product names and sizes, adding column SizeType that says 
+-- 'Numeric' or 'Non-numeric' depending on whether size 
+-- is a number or not
+
+-- there is a function ISNUMERIC - returns 1 or 0 depending on
+-- whether the argument is a number or not
+select Name, Size, 
+       iif(isnumeric(Size)= 1, 'Numeric', 
+	       iif(Size is null, NULL, 'Non-numeric') )as SizeType
+from SalesLT.Product
+
+-- get product names, category names from products, and
+-- add a calculated column ProductType that reads 'Bikes', 
+-- 'Components', 'Clothing', or 'Accessories', based on 
+-- the parent category of the product's category
+
+select p.Name as ProductName, p.ProductCategoryID, 
+       c.Name as CategoryName, c.ParentProductCategoryID,
+	   choose(c.ParentProductCategoryID, 
+	   'Bikes', 'Components', 'Clothing','Accessories') as ProductType
+from SalesLT.Product p join SalesLT.ProductCategory c
+   on p.ProductCategoryID = c.ProductCategoryID
+
+-------------------------
+-- Module 4 Aggregate Functions
+
+-- how many products?
+select count(*) as ProductsCount from SalesLT.Product
+-- or better
+select count(ProductID) as ProductsCount from SalesLT.Product
+-- can use any not null column
+select count(Name) as ProductsCount from SalesLT.Product
+-- what if we use a column that has null values?
+select count(Color) as ProductsCount from SalesLT.Product 
+   -- counts only the not null values
+-- how many different colours products have?
+select count(distinct Color) as NrColours from  SalesLT.Product
+
+-- how many different customers have orders?
+select count(distinct CustomerID) as NrCustomers
+from SalesLT.SalesOrderHeader
+
+-- what is average total of an order
+select avg(TotalDue) as AverageTotal
+from SalesLT.SalesOrderHeader
+-- format as currency
+select format(avg(TotalDue),'c') as AverageTotal
+from SalesLT.SalesOrderHeader
+
+-- what is the largest and smallest order total?
+select format(min(TotalDue),'c') as Smallest,
+       format(max(TotalDue),'c') as Largest
+from SalesLT.SalesOrderHeader
+
+-- how much money did all the orders bring?
+select format(sum(TotalDue),'c') as GrandTotal
+from SalesLT.SalesOrderHeader
+
+-- how many bike models are there? Count ProductIDs for bikes 
+-- (category name contains the word Bike)
+select count(ProductID) as BikeCount
+from SalesLT.Product p join SalesLT.ProductCategory c
+    on p.ProductCategoryID = c.ProductCategoryID
+where c.Name like '%Bike%'
+
+-- how many customers are assigned to salesperson adventure-works\jillian0
+select count(CustomerID) as CustomerCount
+from SalesLT.Customer
+where SalesPerson = 'adventure-works\jillian0'
+
+--  how many customers are assigned to each salesperson?
+select SalesPerson, count(CustomerID) as CustomerCount
+from SalesLT.Customer
+group by SalesPerson
+
+-- find 5 sales people with largest number of customers
+select top 5 SalesPerson, count(CustomerID) as CustomerCount
+from SalesLT.Customer
+group by SalesPerson
+order by CustomerCount desc
+
+-- total sales revenue for each salesperson
+-- we will sum SubTotal for each order of customers with the salesperson
+select SalesPerson, format(isnull(sum(Subtotal), 0), 'c') as TotalRevenue
+from SalesLT.Customer c left join SalesLT.SalesOrderHeader o
+   on c.CustomerID = o.CustomerID
+group by SalesPerson
+order by TotalRevenue desc
+
+-- let's go back to the query for number of customers per salespareson
+-- but want to see only salespersons with more than 100 customers
+select SalesPerson, count(CustomerID) as CustomerCount
+from SalesLT.Customer
+group by SalesPerson
+having count(CustomerID) > 100
+order by CustomerCount desc
+
+-- display categories and how many products are in each category
+select p.ProductCategoryID, c.Name, count(ProductID) as ProductCount
+from SalesLT.Product p join SalesLT.ProductCategory c
+      on p.ProductCategoryID = c.ProductCategoryID
+group by p.ProductCategoryID, c.Name
+order by ProductCount desc
+
+-- display only categories that have 10 or more products
+select p.ProductCategoryID, c.Name, count(ProductID) as ProductCount
+from SalesLT.Product p join SalesLT.ProductCategory c
+      on p.ProductCategoryID = c.ProductCategoryID
+group by p.ProductCategoryID, c.Name
+having count(ProductID) >= 10
+order by ProductCount desc

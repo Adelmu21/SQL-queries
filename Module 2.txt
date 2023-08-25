@@ -1,0 +1,198 @@
+-- 10 most expensive products
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice -- ascending order from smalles to largest
+
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice desc -- from largest to smallest
+
+select top 10 ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice desc
+
+-- get 20 heaviest products
+select top 20 ProductID, ProductNumber, Name, Weight
+from SalesLT.Product
+order by Weight desc
+
+-- with ties
+select top 7 with ties ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice desc
+
+-- get 10% of most expensive products
+select top 10 percent ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice desc
+
+-- get pages of data
+-- OFFSET and FETCH
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by ListPrice desc
+-- retrieve records, 10 at a time, alphabetically ordered by name
+-- first page
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by Name offset 0 rows fetch next 10 rows only
+
+-- second page
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by Name offset 10 rows fetch next 10 rows only
+
+-- third page
+select ProductID, ProductNumber, Name, ListPrice
+from SalesLT.Product
+order by Name offset 20 rows fetch next 10 rows only
+
+-- ALL and DISTINCT
+-- what colours are the products?
+select Color
+from SalesLT.Product
+
+select all Color -- same because ALL is the default
+from SalesLT.Product
+
+select distinct Color -- displays distinct values
+from SalesLT.Product  -- side effect orders in ascending order
+
+-- what different weights are the products coming in?
+select distinct Weight
+from SalesLT.Product
+
+-- filter results with WHERE condition
+-- get names, colour, and size of products from ProductModelID 6
+select Name, Color, Size, ProductModelID
+from SalesLT.Product
+where ProductModelID = 6
+
+-- get names, colour, and size of products from ProductModelID other than 6
+select Name, Color, Size, ProductModelID
+from SalesLT.Product
+where ProductModelID <> 6
+order by ProductModelID, Name
+-- or - only in T-SQL 
+select Name, Color, Size, ProductModelID
+from SalesLT.Product
+where ProductModelID != 6
+order by ProductModelID, Name
+
+-- names and list prices of products with price more than 1000
+select Name, ListPrice
+from SalesLT.Product
+where ListPrice > 1000
+
+-- search with partial information
+-- names and list prices of products whose name satrst with 'Road'
+select Name, ListPrice
+from SalesLT.Product
+where Name = 'Road' -- no results
+-- "wildcard" characters
+-- % stands for arbitrary string and _ stands for a single arbitrary character
+select Name, ListPrice
+from SalesLT.Product
+where Name like 'Road%' 
+
+-- products that end with letter e
+select Name, ListPrice
+from SalesLT.Product
+where Name like '%e'
+
+-- products that have word 'tour' in the name
+select Name, ListPrice
+from SalesLT.Product
+where Name like '%tour%'
+-- products that have word 'large' in the name
+select Name, ListPrice
+from SalesLT.Product
+where Name like '%large%'
+
+-- Product Number starts with HL-, then arbitrary letter, 
+-- followed by three digits, 
+-- and maybe additional string
+select ProductNumber, Name
+from SalesLT.Product
+where ProductNumber like 'HL-[a-zA-Z][0-9][0-9][0-9]%'
+
+-- searching for NULL values
+-- products that  do not have SellEndDate
+select Name, SellStartDate, SellEndDate
+from SalesLT.Product
+where SellEndDate = null -- no results
+
+select Name, SellStartDate, SellEndDate
+from SalesLT.Product
+where SellEndDate is null
+
+-- discontinued products
+--(SellEndDate is provided)
+select Name, SellStartDate, SellEndDate
+from SalesLT.Product
+where SellEndDate is not null
+
+-- BETWEEN ... AND ...
+-- products with prices 100 - 200
+select ProductNumber, Name, ListPrice
+from SalesLT.Product
+where ListPrice between 100 and 200 -- both end values are included
+order by ListPrice
+
+-- same
+select ProductNumber, Name, ListPrice
+from SalesLT.Product
+where ListPrice >= 100 and ListPrice <= 200 -- both end values are included
+order by ListPrice
+
+-- products with name that starts with M or more in the alphabet
+select ProductNumber, Name, ListPrice
+from SalesLT.Product
+where Name >= 'M'
+order by Name
+
+-- products with name that starts with up to letter K
+select ProductNumber, Name, ListPrice
+from SalesLT.Product
+where Name  < 'L'
+order by Name
+
+-- comparisons and  BETWEEN apply to dates too
+-- products with SellEnddate in June 2006
+
+select getdate() -- default format yyyy-MM-dd
+
+select ProductNumber, Name, SellEndDate
+from SalesLT.Product
+where SellEndDate between '2006-06-01' and '2006-06-30'
+
+-- compare to a list of things
+-- products from category 5, 7, or 9
+-- IN operator, with a list of values
+select ProductNumber, Name, ProductCategoryID
+from SalesLT.Product
+where ProductCategoryID in (5, 7, 9)
+order by ProductCategoryID, Name
+
+-- products from categories other than 5, 7, 9
+select ProductNumber, Name, ProductCategoryID
+from SalesLT.Product
+where ProductCategoryID not in (5, 7, 9)
+order by ProductCategoryID, Name
+
+-- more complex conditions
+--products from categories 5, 7, 9 
+--that are still being sold (SellEndDate is null)
+select ProductNumber, Name, ProductCategoryID, SellEndDate
+from SalesLT.Product
+where ProductCategoryID in (5, 7, 9) and SellEndDate is null
+order by ProductCategoryID, Name
+
+--or
+select ProductNumber, Name, ProductCategoryID, SellEndDate
+from SalesLT.Product
+where (ProductCategoryID = 5 or  
+       ProductCategoryID = 7 or 
+	   ProductCategoryID =  9) and SellEndDate is null
+order by ProductCategoryID, Name
+

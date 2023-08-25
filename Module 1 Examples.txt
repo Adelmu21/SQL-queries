@@ -1,0 +1,96 @@
+--MODULE 1 EXAMPLES
+--------------------
+
+-- product names, with list prices, and standard cost
+select Name, ListPrice, StandardCost 
+from SalesLT.Product
+
+-- add markup - calculated column
+select Name, ListPrice, StandardCost,
+       ListPrice - StandardCost as Markup -- alias
+from SalesLT.Product
+
+-- combine (concatenate) two columns
+select ProductNumber, Color, Size
+from SalesLT.Product
+
+select ProductNumber, Color, Size, 
+       Color + isnull(', ' + Size, '') as ProductDetails
+from SalesLT.Product
+
+-- NULL - no value
+-- ISNULL(expression, replacement_value_for_null)
+
+-- + means different thing for strings and different for numbers
+select  345+12
+
+-- need for temporarily change the type (cast) of ProductID to nvarchar
+select cast(ProductID as varchar(5)) + ': ' + Name as [Product Info]
+from SalesLT.Product
+
+select cast(ProductID as nvarchar(5)) + ': ' + Name as "Product Info"
+from SalesLT.Product
+
+-- use convert to change data type
+select convert(varchar(5), ProductID) + ': ' + Name as [Product Info]
+from SalesLT.Product
+
+-- advantage of convert - additional parameter for formatting
+select ProductNumber, SellStartDate -- "zero time"
+from SalesLT.Product
+
+select ProductNumber, SellStartDate,
+       convert(nvarchar(20), SellStartDate) as DefaultFormat,
+	   convert(nvarchar(20), SellStartDate, 107) as SpecialFormat
+from SalesLT.Product
+
+select getdate() -- current date and time
+select convert(date, getdate()) -- current date
+select convert(time, getdate(), 20) -- current time (with miliseconds)
+
+select format(getdate(), 'hh:mm:ss')
+select format(getdate(), 'MMMM dd, yyyy')
+select format(getdate(), 'dd-MMM-yyyy')
+
+-- CAST cause error if cannot convert
+select Name, cast(Size as int) as NumericSize -- error
+from SalesLT.Product
+-- solution TRY_CAST
+select Name, try_cast(Size as int) as NumericSize 
+from SalesLT.Product
+-- can further replace null with empty string
+select Name, isnull(try_cast(Size as int), ' ') as NumericSize 
+from SalesLT.Product
+
+-- let's play with NULL
+-- if color is Multi, replace it with null
+-- NULLIF(expression, value)
+select Name, nullif(Color, 'Multi') as Color
+from SalesLT.Product
+
+-- COALESCE compares multiple columns and finds the first one 
+-- that is not null
+
+select Name, SellStartDate, SellEndDate,
+       coalesce(SellEndDate, SellStartDate) as LastUpdated
+from salesLT.Product
+
+-- searched CASE expression
+select Name, SellStartDate, SellEndDate,
+       case
+	     when SellEndDate is null then 'Available'
+		 else 'Discontinued'
+	   end as SaleStatus
+from salesLT.Product
+
+-- simple case expression
+
+select Name, Size,
+       case Size
+	     when 'S' then 'Small'
+		 when 'M' then 'Medium'
+		 when 'L' then 'Large'
+		 when 'XL' then 'Extra Large'
+		 else isnull(Size, 'N/A')
+	   end as SpelledOutSize
+from SalesLT.Product

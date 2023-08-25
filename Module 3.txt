@@ -1,0 +1,257 @@
+--Join Examples
+
+-- get some top level data of then order, like
+-- SalesOrderNumber, OrderDate, TotalDue, CustomerID (from SalesOrderHeader),
+-- but add FirstName, LastName, and CompanyName of this customer (from Customer)
+
+select SalesOrderNumber, OrderDate, TotalDue, SalesLT.Customer.CustomerID,
+       FirstName, LastName, CompanyName
+from SalesLT.SalesOrderHeader join SalesLT.Customer
+   on SalesLT.SalesOrderHeader.CustomerID = SalesLT.Customer.CustomerID
+
+-- simplify by renaming the tables (table aliases)
+select SalesOrderNumber, OrderDate, TotalDue, cust.CustomerID,
+       FirstName, LastName, CompanyName
+from SalesLT.SalesOrderHeader as ord 
+   join SalesLT.Customer as cust
+      on ord.CustomerID = cust.CustomerID
+
+-- old syntax
+select SalesOrderNumber, OrderDate, TotalDue, SalesLT.Customer.CustomerID,
+       FirstName, LastName, CompanyName
+from SalesLT.SalesOrderHeader, SalesLT.Customer
+--where SalesLT.SalesOrderHeader.CustomerID = SalesLT.Customer.CustomerID
+
+-- without WHERE, it is a cross join (Cartesian product)
+-- common error!!
+
+-- old syntax allows table aliases too
+select SalesOrderNumber, OrderDate, TotalDue, cust.CustomerID,
+       FirstName, LastName, CompanyName
+from SalesLT.SalesOrderHeader as ord, SalesLT.Customer as cust
+where ord.CustomerID = cust.CustomerID
+
+-- we will be using the new syntax (EXPLICIT JOIN)
+
+-- another example:
+-- we want a report of products available in each category:
+-- category name (from ProductCategory table), and
+-- ProductNumber and Name (from Product table)
+-- order alphabetically by category name, and for each category by product name
+
+select c.Name as CategoryName, p.Name as ProductName, ProductNumber
+from SalesLT.ProductCategory c join SalesLT.Product p
+  on c.ProductCategoryID = p.ProductCategoryID
+order by CategoryName, ProductName
+
+-- join means inner join
+
+-- report of customers (first and last names) and their orders 
+-- (sales order number and date)
+-- but would like to include customers who do not have orders (use outer join)
+-- order alphabetically by last name, then first name, then order number
+
+-- only customers who have orders are displayed
+select c.LastName, c.FirstName, c.CustomerID, o.SalesOrderNumber, 
+       convert(date, o.OrderDate) as OrderDate
+from SalesLT.Customer c inner join SalesLT.SalesOrderHeader o
+   on c.CustomerID = o.CustomerID
+order by LastName, FirstName, SalesOrderNumber
+
+--include customers who do not have orders 
+select c.LastName, c.FirstName, c.CustomerID, o.SalesOrderNumber, 
+       convert(date, o.OrderDate) as OrderDate
+from SalesLT.Customer c left join SalesLT.SalesOrderHeader o
+   on c.CustomerID = o.CustomerID
+order by LastName, FirstName, SalesOrderNumber
+
+select * from SalesLT.Customer
+order by LastName, FirstName
+
+-- rule out customers with IDs below 1000
+select c.LastName, c.FirstName, c.CustomerID, o.SalesOrderNumber, 
+       convert(date, o.OrderDate) as OrderDate
+from SalesLT.Customer c join SalesLT.SalesOrderHeader o
+   on c.CustomerID = o.CustomerID
+where c.CustomerID >= 1000
+order by LastName, FirstName, SalesOrderNumber
+
+select c.LastName, c.FirstName, c.CustomerID, o.SalesOrderNumber, 
+       convert(date, o.OrderDate) as OrderDate
+from SalesLT.Customer c left join SalesLT.SalesOrderHeader o
+   on c.CustomerID = o.CustomerID
+where c.CustomerID >= 1000
+order by LastName, FirstName, SalesOrderNumber
+
+-- what if the Customer table was listed on the right of JOIN
+select c.LastName, c.FirstName, c.CustomerID, o.SalesOrderNumber, 
+       convert(date, o.OrderDate) as OrderDate
+from SalesLT.SalesOrderHeader o right join SalesLT.Customer c
+   on c.CustomerID = o.CustomerID
+where c.CustomerID >= 1000
+order by LastName, FirstName, SalesOrderNumber
+
+-- display only customers with IDs >= 1000 who do not have orders
+select LastName, FirstName, c.CustomerID
+from SalesLT.SalesOrderHeader o right join SalesLT.Customer c
+   on c.CustomerID = o.CustomerID
+where SalesOrderNumber is null -- rules out customers who have orders
+and c.CustomerID >= 1000
+order by LastName, FirstName
+
+-- cross join
+-- every combination of any record from one table matched with 
+-- any record from the other table
+
+-- every combination of customer and product (really, it does not make sense)
+select LastName, FirstName, Name as ProductName
+from SalesLT.Customer cross join SalesLT.Product -- rarely useful
+order by LastName, FirstName, ProductName
+
+-- self-join - useful then table is related to itself
+-- there is relationship between categories
+
+-- report parent categories with their subcategories
+select parent.Name as ParentCategory, sub.Name as Subcategory
+from SalesLT.ProductCategory parent join SalesLT.ProductCategory sub
+    on parent.ProductCategoryID = sub.ParentProductCategoryID
+
+-- list products from each category
+select p.Name as ParentCategory, s.Name as Subcategory,
+       pr.name as ProductName
+from SalesLT.ProductCategory p 
+   join SalesLT.ProductCategory s
+      on p.ProductCategoryID = s.ParentProductCategoryID
+   join SalesLT.Product pr
+      on pr.ProductCategoryID = s.ProductCategoryID
+order by ParentCategory, Subcategory, ProductName
+
+-- join of three tables but without self join
+-- display orders (order number and  date), 
+-- with products ordered (name), and quantity ordered
+select ord.SalesOrderNumber, 
+       convert(date, ord.OrderDate) as OrderDate,
+       prod.Name as ProductName, det.OrderQty
+from SalesLT.SalesOrderHeader ord 
+   join SalesLT.SalesOrderDetail det
+     on ord.SalesOrderID = det.SalesOrderID
+   join SalesLT.Product prod
+     on det.ProductID = prod.ProductID
+
+
+---------------
+-- Module 3 Subqueries
+----------------------
+
+--  which products have price > 1000?
+select Name
+from SalesLT.Product
+where ListPrice > 1000
+
+-- which product has the largest list price?
+--      what is the largest list price (there is MAX function)
+        select max(ListPrice)
+		from SalesLT.Product
+		-- 3578.27
+select Name, ListPrice
+from SalesLT.Product
+where ListPrice = 3578.27
+
+-- put it together
+select Name, ListPrice -- outer query
+from SalesLT.Product
+where ListPrice = (select max(ListPrice) -- a subquery
+		           from SalesLT.Product)
+--Execution order:
+-- first the subquery runs and produces result
+-- the result of the subquery is used in running of the outer query
+
+-- which products have list price > average list price of all  products
+-- Tip: there is AVG
+
+-- Auxilliary question: what is the average list price?
+select avg(ListPrice)
+from SalesLT.Product
+--744.5952
+
+select Name, ListPrice
+from SalesLT.Product
+where ListPrice > (select avg(ListPrice)
+                   from SalesLT.Product)
+order by ListPrice
+
+-- find the names of products that have been ordered 
+-- in quantity of 20 or more
+
+select ProductID 
+from SalesLT.SalesOrderDetail
+where OrderQty >= 20
+
+-- use a join query
+select distinct prod.ProductID, prod.Name 
+from SalesLT.SalesOrderDetail det join SalesLT.Product prod
+    on det.ProductID = prod.ProductID
+where OrderQty >= 20
+
+-- can also use a subquery
+select ProductID, Name
+from SalesLT.Product
+where ProductID IN (select ProductID 
+                    from SalesLT.SalesOrderDetail
+                    where OrderQty >= 20)
+-- as a rule of thumb, a query with join runs faster 
+-- than one with a subquery
+
+-- correlated  subqueries
+-- for each product that has been ordered, 
+-- get the order with maximum order quantity
+
+-- let's start with simpler query: get order ID, product id , and quantity
+-- for each order
+select SalesOrderID, ProductID, OrderQty
+from SalesLT.SalesOrderDetail
+
+-- get only product order records for which the q-antity ordered is
+-- maximum for this product
+select SalesOrderID, ProductID, OrderQty
+from SalesLT.SalesOrderDetail od
+where OrderQty = ( select max(OrderQty)
+                   from SalesLT.SalesOrderDetail
+				   where ProductID = od.ProductID
+				   -- it is the same product
+                 )
+-- product ID  from outer query must be passed to the inner query
+
+-- excution of correlated subqueries is an iteration:
+-- for each row from the outer query,
+--    a value is passed to the inner query
+--    the inner query executes
+--    the result of the inner query is used to determine 
+--    if the row from the outer query should be included in the result
+--    and then next row from the outer query is examined
+
+-- we looked at subquery that is placed on the WHERE clause
+-- a subquery can appear in other places
+
+-- get order iD , date, and customer ID for every order
+select SalesOrderID, convert(date, OrderDate) as OrderDate, 
+       CustomerID
+from SalesLT.SalesOrderHeader
+
+-- want to include customer name (first name and last name)
+-- use join
+select SalesOrderID, convert(date, OrderDate) as OrderDate, 
+       cust.CustomerID, FirstName, LastName
+from SalesLT.SalesOrderHeader ord join SalesLT.Customer cust
+     on ord.CustomerID = cust.CustomerID
+
+--or, use a subquery to get data from Customer table
+-- but have to combine both name into one column
+select SalesOrderID, convert(date, OrderDate) as OrderDate, 
+       CustomerID, (select FirstName + ' ' + LastName 
+	                from SalesLT.Customer cust
+					where cust.CustomerID = ord.CustomerID
+					) as CustName
+from SalesLT.SalesOrderHeader ord
+
+-- the join is better!

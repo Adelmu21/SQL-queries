@@ -1,0 +1,119 @@
+-- Module 5
+
+-- Inserting data
+-------------------
+
+-- create a table
+create table SalesLT.CallLog
+(
+   CallID int identity primary key,
+   CallTime datetime not null default getdate(),
+   SalesPerson nvarchar(256) not null,
+   CustomerID int not null references SalesLT.Customer(CustomerID), --FK
+   PhoneNumber nvarchar(25) not null,
+   Notes nvarchar(max) -- null
+)
+
+select * from SalesLT.CallLog
+
+-- insert a row of data - all data provided
+insert into SalesLT.CallLog(CallTime, SalesPerson, CustomerID,
+             PhoneNumber, Notes)
+values(convert(datetime,'2023-03-22 8:45:00'),
+       'adventure-works\pamela0', 1, '245-555-0173', 'Returning call')
+-- with default value
+insert into SalesLT.CallLog(CallTime, SalesPerson, CustomerID,
+             PhoneNumber, Notes)
+values(default, 'adventure-works\david8', 2, '170-555-0127', NULL)
+
+-- you can also apply default values by skipping the columns
+insert into SalesLT.CallLog(SalesPerson, CustomerID,
+             PhoneNumber)
+values('adventure-works\david8', 5, '234-123-4545')
+
+select * from SalesLT.CallLog
+
+-- you can also insert multiple rows at the samme time
+insert into SalesLT.CallLog(CallTime, SalesPerson, CustomerID, PhoneNumber)
+values
+('2023-03-22 12:00:00', 'adventure-works\pamela0', 2, '345-234-1234'),
+(getdate(), 'adventure-works\david8', 4, '123-987-1234')
+
+--how to get the identity value that was generated
+select SCOPE_IDENTITY() -- last generated identity value
+
+-- last generated identity value for specific table
+select IDENT_CURRENT('SalesLt.CallLog')
+
+-- Updating data
+
+select * from SalesLT.CallLog
+
+-- put 'No notes' where there is NULL
+update SalesLT.CallLog
+set Notes = 'No Notes'
+where Notes is null
+
+-- add one hour to call time for CallID 1
+update SalesLT.CallLog
+set CallTime = dateadd(hour, 1, CallTime)
+where CallID = 1
+
+-- you can update more than one column
+-- change callID 3 to record different customer and phone
+update SalesLT.CallLog
+set CustomerID =3, PhoneNumber = '234-456-67890'
+where CallID = 3
+
+-- fix the phone number
+update SalesLT.CallLog
+set PhoneNumber = '234-456-6789'
+where CallID = 3
+
+select * from SalesLT.CallLog
+
+-- you can get data from another table for the update
+-- get salesperson and phone nuber from the Customer table
+update SalesLT.CallLog
+set SalesPerson = c.SalesPerson, PhoneNumber = c.Phone
+from  SalesLT.Customer as c
+where SalesLT.CallLog.CustomerID = c.CustomerID
+-- the update applies to all rows
+
+select * from SalesLT.CallLog
+
+-- if no where condition - all rows are updated
+update SalesLT.CallLog
+set Notes = null
+
+-- deleting data
+--remove call ogs for customer 2
+delete from SalesLT.CallLog
+where CustomerID = 2
+
+select * from SalesLT.CallLog
+
+-- transaction is a unit of work - either the whole thing succeeds,
+--    or the whole thing fails (there is no part way complete)
+-- BEGIN TRAN - starts a transaction
+-- COMMIT TRAN - make it all permanent
+-- ROLLBACK TRAN - take it all back (undo it)
+
+begin tran
+
+insert into SalesLT.CallLog(CallTime, SalesPerson, CustomerID,
+             PhoneNumber, Notes)
+values(default, 'adventure-works\david8', 2, '170-555-0127', NULL)
+
+select * from SalesLT.CallLog
+
+-- inteded to delete the first record, but forgot to put WHERE
+delete from SalesLT.CallLog
+
+select * from SalesLT.CallLog -- no data
+
+rollback tran
+select * from SalesLT.CallLog -- data is back to the state at the begin tran
+
+--transaction ended with rollback, so if you want to start transaction
+begin tran
